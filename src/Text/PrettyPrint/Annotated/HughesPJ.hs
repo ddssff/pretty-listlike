@@ -97,22 +97,9 @@ import qualified Data.Semigroup as Semi ( Semigroup((<>)) )
 import Data.Monoid     ( Monoid(mempty, mappend)  )
 #endif
 import Data.String     ( IsString(fromString) )
+import Text.PrettyPrint.ListLike (UString, AString)
 
 import GHC.Generics
-
-class (Eq string,
-       IsString string,
-       LL.ListLike string Char,
-       LL.ListLikeIO string Char,
-       LL.StringLike string,
-       NFData string) =>
-    UString string
-
-instance UString String
-
--- | An instance of UString to be used for internal operations where
--- we need to disambiguate an expression.
-type AString = String
 
 -- ---------------------------------------------------------------------------
 -- The Doc calculus

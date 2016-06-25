@@ -36,6 +36,7 @@ Library
         Text.PrettyPrint
         Text.PrettyPrint.HughesPJ
         Text.PrettyPrint.HughesPJClass
+        Text.PrettyPrint.ListLike
         Text.PrettyPrint.Annotated
         Text.PrettyPrint.Annotated.HughesPJ
         Text.PrettyPrint.Annotated.HughesPJClass
