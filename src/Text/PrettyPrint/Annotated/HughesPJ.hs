@@ -962,12 +962,12 @@ data Mode = PageMode
 -- | Render the @Doc@ to a String using the default @Style@ (see 'style').
 render :: UString string => Doc a -> string
 render = fullRender (mode style) (lineLength style) (ribbonsPerLine style)
-                    txtPrinter (fromString "")
+                    txtPrinter mempty
 
 -- | Render the @Doc@ to a String using the given @Style@.
 renderStyle :: UString string => Style -> Doc a -> string
 renderStyle s = fullRender (mode s) (lineLength s) (ribbonsPerLine s)
-                txtPrinter (fromString "")
+                txtPrinter mempty
 
 -- | Default TextDetails printer.
 txtPrinter :: UString string => TextDetails -> string -> string

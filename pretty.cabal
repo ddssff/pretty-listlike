@@ -43,9 +43,12 @@ Library
         Text.PrettyPrint.Annotated.HughesPJClass
         Text.PrettyPrint.Annotated.String
     build-depends: base >= 4.5 && < 5,
+                   bytestring,
                    deepseq >= 1.1,
                    ghc-prim,
-                   ListLike >= 4.3.3
+                   ListLike >= 4.3.3,
+                   text,
+                   utf8-string
     extensions: CPP, BangPatterns, DeriveGeneric
     ghc-options: -Wall -fwarn-tabs -O2
 
@@ -54,11 +57,14 @@ Test-Suite test-pretty
     hs-source-dirs: tests
                     src
     build-depends: base >= 4.5 && < 5,
+                   bytestring,
                    deepseq >= 1.1,
                    ghc-prim,
                    ListLike >= 4.3.3,
                    QuickCheck >= 2.5 && <3,
-                   time
+                   text,
+                   time,
+                   utf8-string
     main-is: Test.hs
     other-modules:
         PrettyTestVersion
