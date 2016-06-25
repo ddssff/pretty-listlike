@@ -3,6 +3,10 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE DeriveGeneric #-}
 #endif
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -30,6 +34,7 @@
 
 #ifndef TESTING
 module Text.PrettyPrint.HughesPJ (
+        UString, AString,
 
         -- * The document type
         Doc, TextDetails(..),
@@ -81,11 +86,12 @@ module Text.PrettyPrint.HughesPJ (
 #endif
 
 import           Text.PrettyPrint.Annotated.HughesPJ
-                     ( TextDetails(..), Mode(..), Style(..), style )
+                     ( UString, AString, TextDetails(..), Mode(..), Style(..), style )
 import qualified Text.PrettyPrint.Annotated.HughesPJ as Ann
 
 import Control.DeepSeq ( NFData(rnf) )
 import Data.Function   ( on )
+import qualified Data.ListLike as LL
 #if __GLASGOW_HASKELL__ >= 800
 import qualified Data.Semigroup as Semi ( Semigroup((<>)) )
 #elif __GLASGOW_HASKELL__ < 709
@@ -144,12 +150,13 @@ instance IsString Doc where
     fromString = text
 
 instance Show Doc where
-  showsPrec _ doc cont = fullRender (mode style) (lineLength style)
+  showsPrec _ doc cont = LL.fromListLike $
+                         fullRender (mode style) (lineLength style)
                                     (ribbonsPerLine style)
-                                    txtPrinter cont doc
+                                    txtPrinter (LL.fromListLike cont :: AString) doc
 
 instance Eq Doc where
-  (==) = (==) `on` render
+  (==) = (==) `on` (render :: Doc -> AString)
 
 instance NFData Doc where
   rnf (Doc a) = rnf a
@@ -171,22 +178,22 @@ char c = Doc (Ann.char c)
 --
 -- The side condition on the last law is necessary because @'text' \"\"@
 -- has height 1, while 'empty' has no height.
-text :: String -> Doc
+text :: UString string => string -> Doc
 text s = Doc (Ann.text s)
 {-# INLINE text #-}
 
 -- | Same as @text@. Used to be used for Bytestrings.
-ptext :: String -> Doc
+ptext :: UString string => string -> Doc
 ptext s = Doc (Ann.ptext s)
 {-# INLINE ptext #-}
 
 -- | Some text with any width. (@text s = sizedText (length s) s@)
-sizedText :: Int -> String -> Doc
+sizedText :: UString string => Int -> string -> Doc
 sizedText l s = Doc (Ann.sizedText l s)
 
 -- | Some text, but without any width. Use for non-printing text
 -- such as a HTML or Latex tags
-zeroWidthText :: String -> Doc
+zeroWidthText :: UString string => string -> Doc
 zeroWidthText = sizedText 0
 
 -- | The empty document, with no height and no width.
@@ -422,22 +429,22 @@ first  = liftBinary Ann.first
 -- Rendering
 
 -- | Render the @Doc@ to a String using the default @Style@ (see 'style').
-render :: Doc -> String
+render :: UString string => Doc -> string
 render = fullRender (mode style) (lineLength style) (ribbonsPerLine style)
                     txtPrinter ""
 {-# INLINE render #-}
 
 -- | Render the @Doc@ to a String using the given @Style@.
-renderStyle :: Style -> Doc -> String
+renderStyle :: UString string => Style -> Doc -> string
 renderStyle s = fullRender (mode s) (lineLength s) (ribbonsPerLine s)
                 txtPrinter ""
 {-# INLINE renderStyle #-}
 
 -- | Default TextDetails printer.
-txtPrinter :: TextDetails -> String -> String
-txtPrinter (Chr c)   s  = c:s
-txtPrinter (Str s1)  s2 = s1 ++ s2
-txtPrinter (PStr s1) s2 = s1 ++ s2
+txtPrinter :: UString string => TextDetails -> string -> string
+txtPrinter (Chr c)   s  = LL.cons c s
+txtPrinter (Str s1)  s2 = LL.fromListLike s1 `mappend` s2
+txtPrinter (PStr s1) s2 = LL.fromListLike s1 `mappend` s2
 
 -- | The general rendering interface. Please refer to the @Style@ and @Mode@
 -- types for a description of rendering mode, line length and ribbons.

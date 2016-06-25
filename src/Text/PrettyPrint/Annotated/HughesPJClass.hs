@@ -31,6 +31,7 @@ module Text.PrettyPrint.Annotated.HughesPJClass (
     module Text.PrettyPrint.Annotated.HughesPJ
   ) where
 
+import qualified Data.ListLike as LL
 import Text.PrettyPrint.Annotated.HughesPJ
 
 -- | Level of detail in the pretty printed output. Level 0 is the least
@@ -61,7 +62,7 @@ class Pretty a where
 
 -- | Pretty print a value with the 'prettyNormal' level.
 prettyShow :: (Pretty a) => a -> String
-prettyShow = render . pPrint
+prettyShow = (LL.fromListLike :: AString -> String) . render . pPrint
 
 pPrint0 :: (Pretty a) => PrettyLevel -> a -> Doc ann
 pPrint0 l = pPrintPrec l 0

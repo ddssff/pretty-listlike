@@ -4,6 +4,11 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE DeriveGeneric #-}
 #endif
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -23,6 +28,7 @@
 
 #ifndef TESTING
 module Text.PrettyPrint.Annotated.HughesPJ (
+        UString, AString,
 
         -- * The document type
         Doc, TextDetails(..), AnnotDetails(..),
@@ -84,6 +90,7 @@ module Text.PrettyPrint.Annotated.HughesPJ (
 
 import Control.DeepSeq ( NFData(rnf) )
 import Data.Function   ( on )
+import qualified Data.ListLike as LL
 #if __GLASGOW_HASKELL__ >= 800
 import qualified Data.Semigroup as Semi ( Semigroup((<>)) )
 #elif __GLASGOW_HASKELL__ < 709
@@ -92,6 +99,20 @@ import Data.Monoid     ( Monoid(mempty, mappend)  )
 import Data.String     ( IsString(fromString) )
 
 import GHC.Generics
+
+class (Eq string,
+       IsString string,
+       LL.ListLike string Char,
+       LL.ListLikeIO string Char,
+       LL.StringLike string,
+       NFData string) =>
+    UString string
+
+instance UString String
+
+-- | An instance of UString to be used for internal operations where
+-- we need to disambiguate an expression.
+type AString = String
 
 -- ---------------------------------------------------------------------------
 -- The Doc calculus
@@ -251,8 +272,8 @@ annotSize _             = 0
 -- | A TextDetails represents a fragment of text that will be output at some
 -- point in a @Doc@.
 data TextDetails = Chr  {-# UNPACK #-} !Char -- ^ A single Char fragment
-                 | Str  String -- ^ A whole String fragment
-                 | PStr String -- ^ Used to represent a Fast String fragment
+                 | Str  AString -- ^ A whole String fragment
+                 | PStr AString -- ^ Used to represent a Fast String fragment
                                --   but now deprecated and identical to the
                                --   Str constructor.
 #if __GLASGOW_HASKELL__ >= 701
@@ -281,12 +302,13 @@ instance IsString (Doc a) where
     fromString = text
 
 instance Show (Doc a) where
-  showsPrec _ doc cont = fullRender (mode style) (lineLength style)
+  showsPrec _ doc cont = LL.toList $
+                         fullRender (mode style) (lineLength style)
                                     (ribbonsPerLine style)
-                                    txtPrinter cont doc
+                                    txtPrinter (LL.fromListLike cont :: AString) doc
 
 instance Eq (Doc a) where
-  (==) = (==) `on` render
+  (==) = (==) `on` (render :: Doc a -> AString)
 
 instance Functor Doc where
   fmap _ Empty               = Empty
@@ -341,20 +363,20 @@ char c = textBeside_ (NoAnnot (Chr c) 1) Empty
 --
 -- The side condition on the last law is necessary because @'text' \"\"@
 -- has height 1, while 'empty' has no height.
-text :: String -> Doc a
-text s = case length s of {sl -> textBeside_ (NoAnnot (Str s) sl) Empty}
+text :: UString string => string -> Doc a
+text s = case LL.length s of {sl -> textBeside_ (NoAnnot (Str (LL.fromListLike s)) sl) Empty}
 
 -- | Same as @text@. Used to be used for Bytestrings.
-ptext :: String -> Doc a
-ptext s = case length s of {sl -> textBeside_ (NoAnnot (PStr s) sl) Empty}
+ptext :: UString string => string -> Doc a
+ptext s = case LL.length s of {sl -> textBeside_ (NoAnnot (PStr (LL.fromListLike s)) sl) Empty}
 
 -- | Some text with any width. (@text s = sizedText (length s) s@)
-sizedText :: Int -> String -> Doc a
-sizedText l s = textBeside_ (NoAnnot (Str s) l) Empty
+sizedText :: UString string => Int -> string -> Doc a
+sizedText l s = textBeside_ (NoAnnot (Str (LL.fromListLike s)) l) Empty
 
 -- | Some text, but without any width. Use for non-printing text
 -- such as a HTML or Latex tags
-zeroWidthText :: String -> Doc a
+zeroWidthText :: UString string => string -> Doc a
 zeroWidthText = sizedText 0
 
 -- | The empty document, with no height and no width.
@@ -371,8 +393,8 @@ isEmpty _     = False
 -- | Produce spacing for indenting the amount specified.
 --
 -- an old version inserted tabs being 8 columns apart in the output.
-indent :: Int -> String
-indent !n = replicate n ' '
+indent :: UString string => Int -> string
+indent !n = LL.replicate n ' '
 
 {-
 Q: What is the reason for negative indentation (i.e. argument to indent
@@ -951,20 +973,20 @@ data Mode = PageMode
 #endif
 
 -- | Render the @Doc@ to a String using the default @Style@ (see 'style').
-render :: Doc a -> String
+render :: UString string => Doc a -> string
 render = fullRender (mode style) (lineLength style) (ribbonsPerLine style)
-                    txtPrinter ""
+                    txtPrinter (fromString "")
 
 -- | Render the @Doc@ to a String using the given @Style@.
-renderStyle :: Style -> Doc a -> String
+renderStyle :: UString string => Style -> Doc a -> string
 renderStyle s = fullRender (mode s) (lineLength s) (ribbonsPerLine s)
-                txtPrinter ""
+                txtPrinter (fromString "")
 
 -- | Default TextDetails printer.
-txtPrinter :: TextDetails -> String -> String
-txtPrinter (Chr c)   s  = c:s
-txtPrinter (Str s1)  s2 = s1 ++ s2
-txtPrinter (PStr s1) s2 = s1 ++ s2
+txtPrinter :: UString string => TextDetails -> string -> string
+txtPrinter (Chr c)   s  = LL.cons c s
+txtPrinter (Str s1)  s2 = LL.fromListLike s1 `mappend` s2
+txtPrinter (PStr s1) s2 = LL.fromListLike s1 `mappend` s2
 
 -- | The general rendering interface. Please refer to the @Style@ and @Mode@
 -- types for a description of rendering mode, line length and ribbons.
@@ -1037,13 +1059,13 @@ display m !page_width !ribbon_width txt end doc
             = case m of
                     ZigZagMode |  k >= gap_width
                                -> nlText `txt` (
-                                  NoAnnot (Str (replicate shift '/')) shift `txt` (
+                                  NoAnnot (Str (LL.replicate shift '/')) shift `txt` (
                                   nlText `txt`
                                   lay1 (k - shift) s p ))
 
                                |  k < 0
                                -> nlText `txt` (
-                                  NoAnnot (Str (replicate shift '\\')) shift `txt` (
+                                  NoAnnot (Str (LL.replicate shift '\\')) shift `txt` (
                                   nlText `txt`
                                   lay1 (k + shift) s p ))
 
@@ -1087,23 +1109,24 @@ instance Functor Span where
 
 
 -- State required for generating document spans.
-data Spans a = Spans { sOffset :: !Int
+data Spans string a =
+               Spans { sOffset :: !Int
                        -- ^ Current offset from the end of the document.
                      , sStack  :: [Int -> Span a]
                        -- ^ Currently open spans.
                      , sSpans  :: [Span a]
                        -- ^ Collected annotation regions.
-                     , sOutput :: String
+                     , sOutput :: string
                        -- ^ Collected output.
                      }
 
 -- | Render an annotated @Doc@ to a String and list of annotations (see 'Span')
 -- using the default @Style@ (see 'style').
-renderSpans :: Doc ann -> (String,[Span ann])
+renderSpans :: forall string ann. UString string => Doc ann -> (string,[Span ann])
 renderSpans  = finalize
              . fullRenderAnn (mode style) (lineLength style) (ribbonsPerLine style)
                   spanPrinter
-                  Spans { sOffset = 0, sStack = [], sSpans = [], sOutput = "" }
+                  Spans { sOffset = 0, sStack = [], sSpans = [], sOutput = fromString "" }
   where
 
   finalize (Spans size _ spans out) = (out, map adjust spans)
@@ -1128,9 +1151,9 @@ renderSpans  = finalize
 
   spanPrinter (NoAnnot td l) s =
     case td of
-      Chr  c -> s { sOutput = c  : sOutput s, sOffset = sOffset s + l }
-      Str  t -> s { sOutput = t ++ sOutput s, sOffset = sOffset s + l }
-      PStr t -> s { sOutput = t ++ sOutput s, sOffset = sOffset s + l }
+      Chr  c -> s { sOutput = LL.cons c (sOutput s), sOffset = sOffset s + l }
+      Str  t -> s { sOutput = LL.fromListLike t `mappend` sOutput s, sOffset = sOffset s + l }
+      PStr t -> s { sOutput = LL.fromListLike t `mappend` sOutput s, sOffset = sOffset s + l }
 
 
 -- | Render out a String, interpreting the annotations as part of the resulting
@@ -1139,21 +1162,22 @@ renderSpans  = finalize
 -- /IMPORTANT/: the size of the annotation string does NOT figure into the
 -- layout of the document, so the document will lay out as though the
 -- annotations are not present.
-renderDecorated :: (ann -> String) -- ^ Starting an annotation.
-                -> (ann -> String) -- ^ Ending an annotation.
-                -> Doc ann -> String
+renderDecorated :: UString string
+                => (ann -> string) -- ^ Starting an annotation.
+                -> (ann -> string) -- ^ Ending an annotation.
+                -> Doc ann -> string
 renderDecorated startAnn endAnn =
   finalize . fullRenderAnn (mode style) (lineLength style) (ribbonsPerLine style)
                  annPrinter
-                 ("", [])
+                 (fromString "", [])
   where
   annPrinter AnnotStart (rest,stack) =
     case stack of
-      a : as -> (startAnn a ++ rest, as)
+      a : as -> (startAnn a `mappend` rest, as)
       _      -> error "renderDecorated: stack underflow"
 
   annPrinter (AnnotEnd a) (rest,stack) =
-    (endAnn a ++ rest, a : stack)
+    (endAnn a `mappend` rest, a : stack)
 
   annPrinter (NoAnnot s _) (rest,stack) =
     (txtPrinter s rest, stack)
@@ -1163,10 +1187,10 @@ renderDecorated startAnn endAnn =
 
 -- | Render a document with annotations, by interpreting the start and end of
 -- the annotations, as well as the text details in the context of a monad.
-renderDecoratedM :: Monad m
+renderDecoratedM :: (Monad m, UString string)
                  => (ann    -> m r) -- ^ Starting an annotation.
                  -> (ann    -> m r) -- ^ Ending an annotation.
-                 -> (String -> m r) -- ^ Text formatting.
+                 -> (string -> m r) -- ^ Text formatting.
                  -> m r             -- ^ Document end.
                  -> Doc ann -> m r
 renderDecoratedM startAnn endAnn txt docEnd =
@@ -1184,8 +1208,8 @@ renderDecoratedM startAnn endAnn txt docEnd =
 
   annPrinter (NoAnnot td _) (rest,stack) =
     case td of
-      Chr  c -> (txt [c] >> rest, stack)
-      Str  s -> (txt s   >> rest, stack)
-      PStr s -> (txt s   >> rest, stack)
+      Chr  c -> (txt (LL.singleton c)    >> rest, stack)
+      Str  s -> (txt (LL.fromListLike s) >> rest, stack)
+      PStr s -> (txt (LL.fromListLike s) >> rest, stack)
 
   finalize (m,_) = m

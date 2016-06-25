@@ -41,7 +41,8 @@ Library
         Text.PrettyPrint.Annotated.HughesPJClass
     build-depends: base >= 4.5 && < 5,
                    deepseq >= 1.1,
-                   ghc-prim
+                   ghc-prim,
+                   ListLike >= 4.3.3
     extensions: CPP, BangPatterns, DeriveGeneric
     ghc-options: -Wall -fwarn-tabs -O2
 
@@ -52,6 +53,7 @@ Test-Suite test-pretty
     build-depends: base >= 4.5 && < 5,
                    deepseq >= 1.1,
                    ghc-prim,
+                   ListLike >= 4.3.3,
                    QuickCheck >= 2.5 && <3,
                    time
     main-is: Test.hs
@@ -64,7 +66,7 @@ Test-Suite test-pretty
         UnitPP1
         UnitT3911
         UnitT32
-    extensions: CPP, BangPatterns, DeriveGeneric
+    extensions: CPP, BangPatterns, DeriveGeneric, FlexibleContexts, FlexibleInstances, ScopedTypeVariables, TypeSynonymInstances
     include-dirs: src/Text/PrettyPrint/Annotated
     ghc-options: -rtsopts -with-rtsopts=-K2M -O2
 
