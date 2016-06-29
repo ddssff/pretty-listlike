@@ -19,7 +19,7 @@ bug-reports:   http://github.com/haskell/pretty/issues
 stability:     Stable
 build-type:    Simple
 Extra-Source-Files: README.md CHANGELOG.md
-Cabal-Version: >= 1.8
+Cabal-Version: >= 1.10
 
 source-repository this
     type: git
@@ -31,6 +31,7 @@ source-repository head
     location: http://github.com/haskell/pretty.git
 
 Library
+    default-language: Haskell2010
     hs-source-dirs: src
     exposed-modules:
         Text.PrettyPrint
@@ -49,10 +50,11 @@ Library
                    ListLike >= 4.3.3,
                    text,
                    utf8-string
-    extensions: CPP, BangPatterns, DeriveGeneric
+    default-extensions: CPP, BangPatterns, DeriveGeneric
     ghc-options: -Wall -fwarn-tabs -O2
 
 Test-Suite test-pretty
+    default-language: Haskell2010
     type: exitcode-stdio-1.0
     hs-source-dirs: tests
                     src
@@ -75,7 +77,7 @@ Test-Suite test-pretty
         UnitPP1
         UnitT3911
         UnitT32
-    extensions: CPP, BangPatterns, DeriveGeneric, FlexibleContexts, FlexibleInstances, ScopedTypeVariables, TypeSynonymInstances
+    default-extensions: CPP, BangPatterns, DeriveGeneric, FlexibleContexts, FlexibleInstances, ScopedTypeVariables, TypeSynonymInstances
     include-dirs: src/Text/PrettyPrint/Annotated
     ghc-options: -rtsopts -with-rtsopts=-K2M -O2
 
