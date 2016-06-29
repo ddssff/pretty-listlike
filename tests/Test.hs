@@ -23,7 +23,9 @@ import UnitT32
 import Control.Monad
 import Data.Char (isSpace)
 import Data.List (intersperse)
+import qualified Data.ListLike as LL
 import Debug.Trace
+import Text.PrettyPrint.ListLike (AString)
 
 import Test.QuickCheck
 
@@ -77,7 +79,7 @@ myAssert msg b = putStrLn $ (if b then "Ok, passed " else "Failed test:\n  ") ++
 
 -- compare text details
 tdEq :: TextDetails -> TextDetails -> Bool
-tdEq td1 td2 = (tdToStr td1) == (tdToStr td2)
+tdEq td1 td2 = (tdToStr td1 :: AString) == (tdToStr td2)
 
 -- algebraic equality on reduced docs
 docEq :: RDoc () -> RDoc () -> Bool
@@ -910,7 +912,7 @@ mergeTexts = merge where
     merge (Nest k d) = Nest k (merge d)
     merge (Union d1 d2) = Union (merge d1) (merge d2)
     mergeText t1 t2 =
-      NoAnnot (Str $ tdToStr (annotToTd t1) ++ tdToStr (annotToTd t2))
+      NoAnnot (Str $ tdToStr (annotToTd t1) `mappend` tdToStr (annotToTd t2))
               (annotSize t1 + annotSize t2)
     
 isOneLiner :: RDoc () -> Bool
@@ -966,8 +968,8 @@ abstractLayout :: Doc () -> [(Int,String)]
 abstractLayout d = cal 0 Nothing (reduceDoc d) where
     --   current column -> this line -> doc -> [(indent,line)]
     cal :: Int -> (Maybe (Int,String)) -> Doc () -> [(Int,String)]
-    cal k cur Empty = [ addTextEOL k (Str "") cur ]    
-    cal k cur (NilAbove d) = (addTextEOL k (Str "") cur) : cal k Nothing d
+    cal k cur Empty = [ addTextEOL k (Str (LL.fromListLike "")) cur ]    
+    cal k cur (NilAbove d) = (addTextEOL k (Str (LL.fromListLike "")) cur) : cal k Nothing d
     cal k cur (TextBeside s d) = cal (k + annotSize s) (addText k s cur) d
     cal k cur (Nest n d) = cal (k+n) cur d
     cal _ _ (Union d1 d2) = error "abstractLayout: Union"

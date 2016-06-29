@@ -12,7 +12,10 @@ module TestStructures (
         text', annotToTd, tdToStr, genericCProp
     ) where
 
+import qualified Data.ListLike as LL
+import Data.String (fromString)
 import PrettyTestVersion
+import Text.PrettyPrint.ListLike (UString)
 
 data CDoc = CEmpty           -- empty
           | CText String     -- text s
@@ -69,13 +72,13 @@ text' (Text str) = text str
 
 annotToTd :: AnnotDetails a -> TextDetails
 annotToTd (NoAnnot s _) = s
-annotToTd _             = Str ""
+annotToTd _             = Str (fromString "")
 
 -- convert text details to string
-tdToStr :: TextDetails -> String
-tdToStr (Chr c) = [c]
-tdToStr (Str s) = s
-tdToStr (PStr s) = s
+tdToStr :: UString string => TextDetails -> string
+tdToStr (Chr c) = LL.singleton c
+tdToStr (Str s) = LL.fromListLike s
+tdToStr (PStr s) = LL.fromListLike s
 
 -- synthesize with stop for cdoc
 -- constructor order

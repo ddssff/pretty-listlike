@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module UnitLargeDoc where
 
 import Text.PrettyPrint.HughesPJ
