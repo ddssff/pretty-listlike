@@ -14,8 +14,8 @@ testLargeDoc = do
   putStrLn $ "Elapsed: " ++ show t
   return ()
 
-largeDocRender :: String
-largeDocRender = force $ render $ vcat $ replicate 10000000 $ text "Hello"
+largeDocRender :: AString
+largeDocRender = force $ render $ vcat $ replicate 10000000 $ (text ("Hello" :: AString))
 
 -- | Run a task and return the elapsed time along with its result.
 timeTask :: IO a -> IO (a, NominalDiffTime)
