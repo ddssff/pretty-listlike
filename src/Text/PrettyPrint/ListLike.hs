@@ -27,11 +27,12 @@ class (Eq string,
 
 instance UString String
 instance UString Builder
+instance UString LL.Chars
 
 -- | AString is an instance of UString to be used for internal
 -- operations when we need to disambiguate an expression.
 -- type AString = String -- -- UnitLargeDoc takes 5 to 6 seconds
-type AString = Builder
+type AString = LL.Chars
 
 instance UString Strict.Text
 instance UString Lazy.Text
