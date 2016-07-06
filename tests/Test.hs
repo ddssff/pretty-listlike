@@ -25,7 +25,7 @@ import Data.Char (isSpace)
 import Data.List (intersperse)
 import qualified Data.ListLike as LL
 #if !MIN_VERSION_base(4,8,0)
-import Data.Monoid
+import Data.Monoid hiding ((<>))
 #endif
 import Debug.Trace
 import Text.PrettyPrint.ListLike (AString)
