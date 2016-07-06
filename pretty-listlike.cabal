@@ -20,6 +20,7 @@ stability:     Stable
 build-type:    Simple
 Extra-Source-Files: README.md CHANGELOG.md
 Cabal-Version: >= 1.10
+Tested-With: GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC >= 8
 
 source-repository this
     type: git
