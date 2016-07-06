@@ -1,7 +1,6 @@
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE BangPatterns #-}
 #if __GLASGOW_HASKELL__ >= 701
-{-# LANGUAGE Safe #-}
 {-# LANGUAGE DeriveGeneric #-}
 #endif
 {-# LANGUAGE FlexibleContexts #-}
